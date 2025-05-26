@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import funciones2 as f2
+inicio=0
+fin=0
 
 a, b,c=f2.datos()
 
@@ -9,10 +11,12 @@ x_v, y_v = f2.vertice(a,b,c)
 
 print(x_v,y_v)
 
+inicio = x_v-10000
+fin = y_v+10000
+
 x = []
 y = []
-inicio = -10
-fin = 10
+
 paso = (fin - inicio) / 399  # 400 puntos
 
 for i in range(400):
