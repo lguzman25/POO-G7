@@ -1,23 +1,51 @@
-import Pygame as ga
+import pygame
+import sys
+import random
 
-# Inicialización de Pygame
 pygame.init()
-# Inicialización de la superficie de dibujo
-ventana = pygame.display.set_mode((640,480))
-pygame.display.set_caption("Ejemplo 1")
-# Bucle principal del juego
-jugando = True
-while jugando:
-    # Comprobamos los eventos
-    #Comprobamos si se ha pulsado el botón de cierre de la ventana
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            jugando = False
-    # Se pinta la ventana con un color
-    # Esto borra los posibles elementos que teníamos anteriormente
-    ventana.fill((255, 255, 255))
-    # Todos los elementos del juego se vuelven a dibujar
+
+ANCHO, ALTO = 400, 300
+pantalla = pygame.display.set_mode((ANCHO, ALTO))
+pygame.display.set_caption("Atrapa el objetivo")
+
+# Colores
+NEGRO = (0, 0, 0)
+AZUL = (0, 0, 255)
+VERDE = (0, 255, 0)
+
+# Jugador
+x, y = 200, 150
+tamaño = 30
+velocidad = 5
+
+# Objetivo
+objetivo_x = random.randint(0, ANCHO - tamaño)
+objetivo_y = random.randint(0, ALTO - tamaño)
+
+reloj = pygame.time.Clock()
+
+while True:
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    # Movimiento
+    teclas = pygame.key.get_pressed()
+    if teclas[pygame.K_LEFT]: x -= velocidad
+    if teclas[pygame.K_RIGHT]: x += velocidad
+    if teclas[pygame.K_UP]: y -= velocidad
+    if teclas[pygame.K_DOWN]: y += velocidad
+
+    # Detectar colisión
+    if abs(x - objetivo_x) < tamaño and abs(y - objetivo_y) < tamaño:
+        objetivo_x = random.randint(0, ANCHO - tamaño)
+        objetivo_y = random.randint(0, ALTO - tamaño)
+
+    pantalla.fill(NEGRO)
+    pygame.draw.rect(pantalla, AZUL, (x, y, tamaño, tamaño))
+    pygame.draw.rect(pantalla, VERDE, (objetivo_x, objetivo_y, tamaño, tamaño))
+
     pygame.display.flip()
-    # Controlamos la frecuencia de refresco (FPS)
-    pygame.time.Clock().tick(60)
-pygame.quit()
+    reloj.tick(60)
+
