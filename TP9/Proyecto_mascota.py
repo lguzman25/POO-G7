@@ -28,12 +28,14 @@ class Mascota:
         self.hambre += 10
         self.ajustar_valores()
         print(f"{self.nombre} corre feliz")
+        self.mostrar_estado()
 
     def comer(self):
         self.hambre -= 30
         self.energia += 5
         self.ajustar_valores()
         print(f"{self.nombre} devoró su comida")
+        self.mostrar_estado()
 
     def dormir(self):
         self.energia += 25
@@ -41,13 +43,12 @@ class Mascota:
         self.hambre += 10
         self.ajustar_valores()
         print(f"{self.nombre} esta durmiendo")
+        self.mostrar_estado()
         
 
 
     def mostrar_estado(self):
-        print("Estado de la mascota")
-        print("Nombre:", self.nombre)
-        print("Especie:", self.especie)
+        print("Estado actual de la mascota", self.nombre)
         print("Felicidad:", self.felicidad)
         print("Energía:", self.energia)
         print("Hambre:", self.hambre)
