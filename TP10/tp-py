@@ -1,0 +1,323 @@
+import pygame
+import sys
+import math
+
+# Inicializar pygame
+pygame.init()
+
+# Constantes
+ANCHO = 800
+ALTO = 600
+FPS = 60
+
+# Colores
+BLANCO = (255, 255, 255)
+NEGRO = (0, 0, 0)
+AZUL = (100, 150, 255)
+VERDE = (100, 255, 100)
+ROJO = (255, 100, 100)
+AMARILLO = (255, 255, 100)
+GRIS = (128, 128, 128)
+GRIS_CLARO = (200, 200, 200)
+CELESTE_CLARO = (173, 216, 230)
+
+
+class Mascota:
+    def __init__(self, nombre):
+        self.nombre = nombre
+        self.especie = "perro"
+        self.felicidad = 50
+        self.energia = 50
+        self.hambre = 50
+        self.x = ANCHO // 2
+        self.y = ALTO // 2
+        self.animacion_tiempo = 0
+        self.estado_animacion = "normal"
+
+    def ajustar_valores(self):
+        self.felicidad = max(0, min(100, self.felicidad))
+        self.energia = max(0, min(100, self.energia))
+        self.hambre = max(0, min(100, self.hambre))
+
+    def jugar(self):
+        self.felicidad += 15
+        self.energia -= 10
+        self.hambre += 10
+        self.ajustar_valores()
+        self.estado_animacion = "jugando"
+        self.animacion_tiempo = pygame.time.get_ticks()
+        return f"{self.nombre} corre feliz"
+
+    def comer(self):
+        self.hambre -= 30
+        self.energia += 5
+        self.ajustar_valores()
+        self.estado_animacion = "comiendo"
+        self.animacion_tiempo = pygame.time.get_ticks()
+        return f"{self.nombre} devoró su comida"
+
+    def dormir(self):
+        self.energia += 25
+        self.felicidad -= 5
+        self.hambre += 10
+        self.ajustar_valores()
+        self.estado_animacion = "durmiendo"
+        self.animacion_tiempo = pygame.time.get_ticks()
+        return f"{self.nombre} está durmiendo"
+
+    def get_estado_emocional(self):
+        estados = []
+        if self.felicidad >= 90:
+            estados.append("Muy feliz")
+        elif self.felicidad <= 30:
+            estados.append("Triste")
+
+        if self.energia >= 90:
+            estados.append("Energético")
+        elif self.energia <= 30:
+            estados.append("Cansado")
+
+        if self.hambre >= 80:
+            estados.append("Hambriento")
+        elif self.hambre <= 20:
+            estados.append("Lleno")
+
+        return estados if estados else ["Normal"]
+
+    def actualizar_animacion(self):
+        tiempo_actual = pygame.time.get_ticks()
+        if tiempo_actual - self.animacion_tiempo > 2000:
+            self.estado_animacion = "normal"
+
+
+def dibujar_perro(screen, mascota):
+    tiempo_actual = pygame.time.get_ticks()
+
+    if mascota.felicidad >= 70:
+        color_perro = (139, 69, 19)
+    elif mascota.felicidad <= 30:
+        color_perro = (105, 105, 105)
+    else:
+        color_perro = (160, 82, 45)
+
+    offset_y = 0
+    ojos_estado = "normal"
+
+    if mascota.estado_animacion == "jugando":
+        offset_y = int(10 * math.sin((tiempo_actual - mascota.animacion_tiempo) / 100))
+        ojos_estado = "feliz"
+    elif mascota.estado_animacion == "durmiendo":
+        ojos_estado = "durmiendo"
+    elif mascota.estado_animacion == "comiendo":
+        ojos_estado = "comiendo"
+    elif mascota.felicidad >= 70:
+        ojos_estado = "feliz"
+    elif mascota.felicidad <= 30:
+        ojos_estado = "triste"
+
+    x, y = mascota.x, mascota.y + offset_y
+
+    pygame.draw.ellipse(screen, color_perro, (x - 40, y - 20, 80, 60))
+    pygame.draw.circle(screen, color_perro, (x, y - 40), 35)
+    pygame.draw.ellipse(screen, (101, 67, 33), (x - 45, y - 65, 25, 40))
+    pygame.draw.ellipse(screen, (101, 67, 33), (x + 20, y - 65, 25, 40))
+    pygame.draw.ellipse(screen, color_perro, (x - 30, y + 15, 15, 35))
+    pygame.draw.ellipse(screen, color_perro, (x - 10, y + 15, 15, 35))
+    pygame.draw.ellipse(screen, color_perro, (x + 10, y + 15, 15, 35))
+    pygame.draw.ellipse(screen, color_perro, (x + 25, y + 15, 15, 35))
+
+    if mascota.estado_animacion == "jugando" or mascota.felicidad >= 70:
+        cola_angle = math.sin(tiempo_actual / 200) * 0.5
+        cola_x = x + 35 + int(15 * math.cos(cola_angle))
+        cola_y = y - 10 + int(15 * math.sin(cola_angle))
+    else:
+        cola_x, cola_y = x + 35, y + 5
+
+    pygame.draw.ellipse(screen, color_perro, (cola_x - 5, cola_y - 15, 10, 30))
+
+    if ojos_estado == "durmiendo":
+        pygame.draw.line(screen, NEGRO, (x - 15, y - 45), (x - 5, y - 45), 3)
+        pygame.draw.line(screen, NEGRO, (x + 5, y - 45), (x + 15, y - 45), 3)
+    elif ojos_estado == "feliz":
+        pygame.draw.arc(screen, NEGRO, (x - 20, y - 50, 10, 10), 0, math.pi, 3)
+        pygame.draw.arc(screen, NEGRO, (x + 10, y - 50, 10, 10), 0, math.pi, 3)
+    elif ojos_estado == "triste":
+        pygame.draw.arc(screen, NEGRO, (x - 20, y - 45, 10, 10), math.pi, 2 * math.pi, 3)
+        pygame.draw.arc(screen, NEGRO, (x + 10, y - 45, 10, 10), math.pi, 2 * math.pi, 3)
+    else:
+        pygame.draw.circle(screen, NEGRO, (x - 12, y - 45), 5)
+        pygame.draw.circle(screen, NEGRO, (x + 12, y - 45), 5)
+        pygame.draw.circle(screen, BLANCO, (x - 10, y - 47), 2)
+        pygame.draw.circle(screen, BLANCO, (x + 14, y - 47), 2)
+
+    pygame.draw.circle(screen, NEGRO, (x, y - 35), 3)
+
+    if ojos_estado == "feliz" or mascota.estado_animacion == "jugando":
+        pygame.draw.arc(screen, NEGRO, (x - 15, y - 30, 30, 20), 0, math.pi, 3)
+        if mascota.estado_animacion == "jugando":
+            pygame.draw.ellipse(screen, (255, 192, 203), (x - 3, y - 22, 6, 8))
+    elif ojos_estado == "comiendo":
+        pygame.draw.ellipse(screen, NEGRO, (x - 8, y - 28, 16, 12))
+    else:
+        pygame.draw.line(screen, NEGRO, (x, y - 32), (x - 5, y - 25), 2)
+        pygame.draw.line(screen, NEGRO, (x, y - 32), (x + 5, y - 25), 2)
+
+
+def dibujar_efectos_especiales(screen, mascota, font):
+    tiempo_actual = pygame.time.get_ticks()
+    tiempo_transcurrido = tiempo_actual - mascota.animacion_tiempo
+
+    if tiempo_transcurrido < 2000:
+        x, y = mascota.x, mascota.y
+        if mascota.estado_animacion == "comiendo":
+            texto = font.render("¡Qué rico!", True, (255, 140, 0))
+            offset_y = int(5 * math.sin(tiempo_transcurrido / 200))
+            screen.blit(texto, (x - 40, y - 120 + offset_y))
+        elif mascota.estado_animacion == "durmiendo":
+            alpha = max(0, 255 - (tiempo_transcurrido // 8))
+            for i, z in enumerate(["Z", "z", "z"]):
+                size = 36 - i * 8
+                font_z = pygame.font.Font(None, size)
+                texto_z = font_z.render(z, True, AZUL)
+                float_offset = int(10 * math.sin((tiempo_transcurrido + i * 500) / 300))
+                z_x = x + 50 + i * 20
+                z_y = y - 100 - i * 15 + float_offset
+                screen.blit(texto_z, (z_x, z_y))
+
+
+def dibujar_barra(screen, x, y, width, height, valor, color):
+    pygame.draw.rect(screen, GRIS, (x, y, width, height))
+    pygame.draw.rect(screen, color, (x, y, width * (valor / 100), height))
+    pygame.draw.rect(screen, NEGRO, (x, y, width, height), 2)
+
+
+def dibujar_boton(screen, x, y, width, height, texto, font, color_fondo=GRIS_CLARO):
+    pygame.draw.rect(screen, color_fondo, (x, y, width, height))
+    pygame.draw.rect(screen, NEGRO, (x, y, width, height), 2)
+    text_surface = font.render(texto, True, NEGRO)
+    text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2))
+    screen.blit(text_surface, text_rect)
+    return pygame.Rect(x, y, width, height)
+
+
+def pantalla_nombre():
+    screen = pygame.display.set_mode((ANCHO, ALTO))
+    pygame.display.set_caption("Mascota Virtual - Elegir Nombre")
+    clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 36)
+    font_grande = pygame.font.Font(None, 48)
+
+    nombre = ""
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and nombre.strip():
+                    return nombre.strip()
+                elif event.key == pygame.K_BACKSPACE:
+                    nombre = nombre[:-1]
+                else:
+                    if len(nombre) < 15 and event.unicode.isprintable():
+                        nombre += event.unicode
+
+        screen.fill(AZUL)
+        titulo = font_grande.render("¡Bienvenido a Mascota Virtual!", True, BLANCO)
+        titulo_rect = titulo.get_rect(center=(ANCHO // 2, 150))
+        screen.blit(titulo, titulo_rect)
+
+        instruccion = font.render("Ingresa el nombre de tu perro:", True, BLANCO)
+        instruccion_rect = instruccion.get_rect(center=(ANCHO // 2, 250))
+        screen.blit(instruccion, instruccion_rect)
+
+        pygame.draw.rect(screen, BLANCO, (ANCHO // 2 - 150, 300, 300, 50))
+        pygame.draw.rect(screen, NEGRO, (ANCHO // 2 - 150, 300, 300, 50), 2)
+        texto_nombre = font.render(nombre, True, NEGRO)
+        screen.blit(texto_nombre, (ANCHO // 2 - 140, 315))
+
+        if pygame.time.get_ticks() % 1000 < 500:
+            cursor_x = ANCHO // 2 - 140 + texto_nombre.get_width()
+            pygame.draw.line(screen, NEGRO, (cursor_x, 310), (cursor_x, 340), 2)
+
+        if nombre.strip():
+            continuar = font.render("Presiona ENTER para continuar", True, BLANCO)
+            continuar_rect = continuar.get_rect(center=(ANCHO // 2, 400))
+            screen.blit(continuar, continuar_rect)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def main():
+    nombre_mascota = pantalla_nombre()
+    screen = pygame.display.set_mode((ANCHO, ALTO))
+    pygame.display.set_caption(f"Mascota Virtual - {nombre_mascota}")
+    clock = pygame.time.Clock()
+
+    font = pygame.font.Font(None, 24)
+    font_titulo = pygame.font.Font(None, 32)
+
+    mascota = Mascota(nombre_mascota)
+
+    mensaje = ""
+    mensaje_tiempo = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+                if boton_jugar.collidepoint(mouse_pos):
+                    mensaje = mascota.jugar()
+                    mensaje_tiempo = pygame.time.get_ticks()
+                elif boton_comer.collidepoint(mouse_pos):
+                    mensaje = mascota.comer()
+                    mensaje_tiempo = pygame.time.get_ticks()
+                elif boton_dormir.collidepoint(mouse_pos):
+                    mensaje = mascota.dormir()
+                    mensaje_tiempo = pygame.time.get_ticks()
+
+        mascota.actualizar_animacion()
+
+        screen.fill(CELESTE_CLARO)
+
+        titulo = font_titulo.render(f"Mascota: {mascota.nombre}", True, NEGRO)
+        screen.blit(titulo, (20, 20))
+
+        screen.blit(font.render("Felicidad:", True, NEGRO), (20, 70))
+        dibujar_barra(screen, 120, 70, 200, 20, mascota.felicidad, AMARILLO)
+
+        screen.blit(font.render("Energía:", True, NEGRO), (20, 100))
+        dibujar_barra(screen, 120, 100, 200, 20, mascota.energia, AZUL)
+
+        screen.blit(font.render("Hambre:", True, NEGRO), (20, 130))
+        dibujar_barra(screen, 120, 130, 200, 20, mascota.hambre, ROJO)
+
+        estados = mascota.get_estado_emocional()
+        estado_texto = "Estado: " + ", ".join(estados)
+        screen.blit(font.render(estado_texto, True, NEGRO), (20, 160))
+
+        dibujar_perro(screen, mascota)
+        dibujar_efectos_especiales(screen, mascota, font)
+
+        boton_jugar = dibujar_boton(screen, 50, 500, 120, 40, "Jugar", font)
+        boton_comer = dibujar_boton(screen, 200, 500, 120, 40, "Comer", font)
+        boton_dormir = dibujar_boton(screen, 350, 500, 120, 40, "Dormir", font)
+
+        if mensaje and pygame.time.get_ticks() - mensaje_tiempo < 3000:
+            mensaje_surface = font.render(mensaje, True, NEGRO)
+            mensaje_rect = mensaje_surface.get_rect(center=(ANCHO // 2, 400))
+            pygame.draw.rect(screen, BLANCO, mensaje_rect.inflate(20, 10))
+            pygame.draw.rect(screen, NEGRO, mensaje_rect.inflate(20, 10), 2)
+            screen.blit(mensaje_surface, mensaje_rect)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+if __name__ == "__main__":
+    main()
