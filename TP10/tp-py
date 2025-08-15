@@ -1,284 +1,236 @@
 import pygame, sys, math
-pygame.init()
 
-# ===== Constantes =====
+# =========================
+# 1) CONFIGURACIÓN BÁSICA
+# =========================
+pygame.init()
 ANCHO, ALTO, FPS = 800, 600, 60
 
 # Colores
-BLANCO=(255,255,255); NEGRO=(0,0,0); AZUL=(100,150,255); VERDE=(100,255,100); ROJO=(255,100,100)
-AMARILLO=(255,255,100); GRIS=(128,128,128); GRIS_CLARO=(200,200,200); CELESTE_CLARO=(173,216,230)
+BLANCO=(255,255,255); NEGRO=(0,0,0)
+AZUL=(100,150,255); AMARILLO=(255,255,100)
+ROJO=(255,100,100); GRIS=(128,128,128); GRIS_CLARO=(200,200,200)
+CELESTE_CLARO=(173,216,230)
 MARRON=(160,82,45); MARRON_OSCURO=(101,67,33)
-ROSA_SUAVE=(255,182,193); ROSA_LENGUA=(255,120,160)
 
-# ===== Helpers UI =====
-def clamp(v): 
-    """Limita un valor al rango 0..100."""
-    return max(0, min(100, v))
+# =========================
+# 2) FUNCIONES DE UI
+# =========================
+def clamp(v): return max(0, min(100, v))
 
 def draw_bar(screen, x, y, w, h, val, color):
-    """Dibuja una barra (fondo gris, relleno según valor y marco negro)."""
     pygame.draw.rect(screen, GRIS, (x, y, w, h))
     pygame.draw.rect(screen, color, (x, y, w*(val/100), h))
     pygame.draw.rect(screen, NEGRO, (x, y, w, h), 2)
 
 def draw_button(screen, x, y, w, h, texto, font, fondo=GRIS_CLARO):
-    """Botón simple con texto centrado. Devuelve el rect para detección de clic."""
     pygame.draw.rect(screen, fondo, (x, y, w, h))
     pygame.draw.rect(screen, NEGRO, (x, y, w, h), 2)
-    surf=font.render(texto, True, NEGRO)
-    rect=surf.get_rect(center=(x+w//2, y+h//2))
+    surf = font.render(texto, True, NEGRO)
+    rect = surf.get_rect(center=(x+w//2, y+h//2))
     screen.blit(surf, rect)
     return pygame.Rect(x, y, w, h)
 
-# ===== Lógica de la mascota =====
+# =========================
+# 3) LÓGICA DE LA MASCOTA
+# =========================
 class Mascota:
     def __init__(self, nombre):
-        self.nombre=nombre
-        self.especie="perro"
-        self.felicidad=self.energia=self.hambre=50
+        self.nombre = nombre
+        self.felicidad = 50
+        self.energia   = 50
+        self.hambre    = 50
         self.x, self.y = ANCHO//2, ALTO//2
-        self.animacion_tiempo=0
-        self.estado_animacion="normal"  # normal | jugando | comiendo | durmiendo
+        self.estado_animacion = "normal"  # normal | jugando | comiendo | durmiendo
+        self.animacion_tiempo = 0
 
     def _sync(self):
-        """Asegura que los estados se mantengan en 0..100."""
-        self.felicidad, self.energia, self.hambre = map(clamp, (self.felicidad, self.energia, self.hambre))
+        self.felicidad = clamp(self.felicidad)
+        self.energia   = clamp(self.energia)
+        self.hambre    = clamp(self.hambre)
 
     def _anima(self, estado):
-        """Activa un estado de animación temporal."""
-        self.estado_animacion=estado
-        self.animacion_tiempo=pygame.time.get_ticks()
+        self.estado_animacion = estado
+        self.animacion_tiempo = pygame.time.get_ticks()
 
     def jugar(self):
-        """Aumenta felicidad, gasta energía y da algo de hambre."""
-        self.felicidad+=15; self.energia-=10; self.hambre+=10
+        self.felicidad += 15
+        self.energia   -= 10
+        self.hambre    += 10
         self._sync(); self._anima("jugando")
-        return f"{self.nombre} corre feliz"
+        return f"{self.nombre} está jugando"
 
     def comer(self):
-        """Disminuye hambre y recupera un poco de energía."""
-        self.hambre-=30; self.energia+=5
+        self.hambre -= 30
+        self.energia += 5
         self._sync(); self._anima("comiendo")
-        return f"{self.nombre} devoró su comida"
+        return f"{self.nombre} comió"
 
     def dormir(self):
-        """Recupera energía, baja un poco la felicidad y sube el hambre."""
-        self.energia+=25; self.felicidad-=5; self.hambre+=10
+        self.energia   += 25
+        self.felicidad -= 5
+        self.hambre    += 10
         self._sync(); self._anima("durmiendo")
         return f"{self.nombre} está durmiendo"
 
     def get_estado_emocional(self):
-        """Devuelve etiquetas de estado según valores."""
         e=[]
-        e+=["Muy feliz"] if self.felicidad>=90 else ["Triste"] if self.felicidad<=30 else []
-        e+=["Energético"] if self.energia>=90 else ["Cansado"] if self.energia<=30 else []
-        e+=["Hambriento"] if self.hambre>=80 else ["Lleno"] if self.hambre<=20 else []
+        if   self.felicidad >= 90: e.append("Muy feliz")
+        elif self.felicidad <= 30: e.append("Triste")
+        if   self.energia   >= 90: e.append("Energético")
+        elif self.energia   <= 30: e.append("Cansado")
+        if   self.hambre    >= 80: e.append("Hambriento")
+        elif self.hambre    <= 20: e.append("Lleno")
         return e or ["Normal"]
 
     def actualizar_animacion(self):
-        """Tras 2s, vuelve a 'normal' el estado de animación."""
-        if pygame.time.get_ticks()-self.animacion_tiempo>2000:
-            self.estado_animacion="normal"
+        # a los 2s se termina la animación y vuelve a 'normal' (cara neutral)
+        if pygame.time.get_ticks() - self.animacion_tiempo > 2000:
+            self.estado_animacion = "normal"
 
-# ===== Dibujo del perro (color fijo y cara mejorada al jugar) =====
+# =========================
+# 4) DIBUJAR EL PERRO
+# =========================
 def dibujar_perro(screen, m):
-    """
-    Dibuja el perro. Color marrón fijo. 
-    Al 'jugar': rebote + cara más expresiva (ojos grandes, sonrisa abierta, lengua).
-    Al 'dormir': ojos cerrados.
-    Al 'comer': ojos simples y boca ocupada.
-    En 'normal': cara feliz suave.
-    """
     t = pygame.time.get_ticks()
-    color = MARRON  # color fijo SIEMPRE
+    x, y = m.x, m.y
+    if m.estado_animacion == "jugando":
+        y += int(10 * math.sin((t - m.animacion_tiempo) / 100))
 
-    # Offset vertical para animación de rebote al jugar
-    offset_y = int(10 * math.sin((t - m.animacion_tiempo) / 100)) if m.estado_animacion=="jugando" else 0
-    x, y = m.x, m.y + offset_y
-
-    # ---- cuerpo / cabeza / orejas / patas ----
-    pygame.draw.ellipse(screen, color, (x-40, y-20, 80, 60))         # cuerpo
-    pygame.draw.circle(screen, color, (x, y-40), 35)                 # cabeza
-    pygame.draw.ellipse(screen, MARRON_OSCURO, (x-45, y-65, 25, 40)) # oreja izq
-    pygame.draw.ellipse(screen, MARRON_OSCURO, (x+20, y-65, 25, 40)) # oreja der
+    # Cuerpo
+    pygame.draw.ellipse(screen, MARRON, (x-40, y-20, 80, 60))
+    pygame.draw.circle(screen, MARRON, (x, y-40), 35)
+    pygame.draw.ellipse(screen, MARRON_OSCURO, (x-45, y-65, 25, 40))
+    pygame.draw.ellipse(screen, MARRON_OSCURO, (x+20, y-65, 25, 40))
     for dx in (-30, -10, 10, 25):
-        pygame.draw.ellipse(screen, color, (x+dx, y+15, 15, 35))     # patas
+        pygame.draw.ellipse(screen, MARRON, (x+dx, y+15, 15, 35))
 
-    # ---- cola: mueve si juega o si es feliz ----
+    # Cola
     if m.estado_animacion == "jugando" or m.felicidad >= 70:
         ang = math.sin(t/200) * 0.5
         cx = x+35 + int(15*math.cos(ang))
         cy = y-10 + int(15*math.sin(ang))
     else:
         cx, cy = x+35, y+5
-    pygame.draw.ellipse(screen, color, (cx-5, cy-15, 10, 30))
+    pygame.draw.ellipse(screen, MARRON, (cx-5, cy-15, 10, 30))
 
-    # ---- nariz (común) ----
+    # Nariz
     pygame.draw.circle(screen, NEGRO, (x, y-35), 3)
 
-    # ---- CARAS según estado ----
+    # Caras
     if m.estado_animacion == "durmiendo":
-        # Ojos cerrados
         pygame.draw.line(screen, NEGRO, (x-15, y-45), (x-5, y-45), 3)
-        pygame.draw.line(screen, NEGRO, (x+5, y-45), (x+15, y-45), 3)
-        # Boca neutra
+        pygame.draw.line(screen, NEGRO, (x+5,  y-45), (x+15, y-45), 3)
         pygame.draw.line(screen, NEGRO, (x-8, y-30), (x+8, y-30), 2)
 
     elif m.estado_animacion == "comiendo":
-        # Ojos simples
         pygame.draw.circle(screen, NEGRO, (x-12, y-45), 5)
         pygame.draw.circle(screen, NEGRO, (x+12, y-45), 5)
-        # Boca llena
         pygame.draw.ellipse(screen, NEGRO, (x-8, y-28, 16, 12))
 
     elif m.estado_animacion == "jugando":
-        # *** CARA MEJORADA: ojos grandes con brillo, sonrisa abierta y lengua, mejillas ***
-        # Ojos grandes (blanco) + pupila negra + brillo blanco
-        for ox in (-12, 12):
-            pygame.draw.circle(screen, BLANCO, (x+ox, y-45), 9)     # globo ocular
-            pygame.draw.circle(screen, NEGRO,  (x+ox+2, y-45), 4)   # pupila (ligeramente hacia afuera)
-            pygame.draw.circle(screen, BLANCO, (x+ox, y-47), 2)     # brillo
-
-        # Mejillas rosadas
-        pygame.draw.circle(screen, ROSA_SUAVE, (x-22, y-32), 4)
-        pygame.draw.circle(screen, ROSA_SUAVE, (x+22, y-32), 4)
-
-        # Sonrisa grande (boca abierta) + lengua
-        pygame.draw.ellipse(screen, NEGRO, (x-18, y-30, 36, 22))          # boca abierta
-        pygame.draw.ellipse(screen, ROSA_LENGUA, (x-8, y-20, 16, 10))     # lengua
-        # Línea de sonrisa superior para marcar contorno
-        pygame.draw.arc(screen, NEGRO, (x-20, y-32, 40, 24), 0, math.pi, 2)
+        # Ojos + SONRISA clara mientras juega
+        pygame.draw.circle(screen, NEGRO, (x-12, y-45), 5)
+        pygame.draw.circle(screen, NEGRO, (x+12, y-45), 5)
+        pygame.draw.arc(screen, NEGRO, (x-15, y-35, 30, 20), math.pi, 2*math.pi, 3)
 
     else:
-        # Estado normal: ojos felices y sonrisa leve
-        pygame.draw.arc(screen, NEGRO, (x-20, y-50, 10, 10), 0, math.pi, 3)   # ojo izq curvado
-        pygame.draw.arc(screen, NEGRO, (x+10, y-50, 10, 10), 0, math.pi, 3)   # ojo der curvado
-        pygame.draw.arc(screen, NEGRO, (x-15, y-30, 30, 20), 0, math.pi, 3)   # sonrisa suave
+        # *** CARA NEUTRA (post-animación) ***
+        # ojos simples
+        pygame.draw.circle(screen, NEGRO, (x-12, y-45), 4)
+        pygame.draw.circle(screen, NEGRO, (x+12, y-45), 4)
+        # boca recta (no sonrisa)
+        pygame.draw.line(screen, NEGRO, (x-8, y-30), (x+8, y-30), 2)
 
-# ===== FX de texto =====
-def dibujar_fx(screen, m, font):
-    """Textos/efectos temporales según la animación actual."""
-    dt=pygame.time.get_ticks()-m.animacion_tiempo
-    if dt>=2000: 
-        return
-    x,y=m.x,m.y
-    if m.estado_animacion=="comiendo":
-        texto=font.render("¡Qué rico!", True, (255,140,0))
-        screen.blit(texto, (x-40, y-120+int(5*math.sin(dt/200))))
-    elif m.estado_animacion=="durmiendo":
-        for i,z in enumerate(["Z","z","z"]):
-            size=36-i*8; f=pygame.font.Font(None, size)
-            t=f.render(z, True, AZUL)
-            off=int(10*math.sin((dt+i*500)/300))
-            screen.blit(t, (x+50+i*20, y-100-i*15+off))
-
-# ===== Pantalla de nombre (sin duplicado) =====
+# =========================
+# 5) PANTALLA PARA NOMBRE
+# =========================
 def pantalla_nombre():
-    """Pide el nombre del perro y solo avanza cuando el usuario presiona ENTER con algo escrito."""
-    screen=pygame.display.set_mode((ANCHO, ALTO))
+    screen = pygame.display.set_mode((ANCHO, ALTO))
     pygame.display.set_caption("Mascota Virtual - Elegir Nombre")
-    clock=pygame.time.Clock()
-    font=pygame.font.Font(None,36); fbig=pygame.font.Font(None,48)
-    nombre=""
+    clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 36)
+    nombre = ""
     while True:
         for e in pygame.event.get():
-            if e.type==pygame.QUIT: 
+            if e.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-            if e.type==pygame.KEYDOWN:
-                if e.key==pygame.K_RETURN and nombre.strip(): 
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_RETURN and nombre.strip():
                     return nombre.strip()
-                if e.key==pygame.K_BACKSPACE: 
-                    nombre=nombre[:-1]
-                elif len(nombre)<15 and e.unicode.isprintable(): 
-                    nombre+=e.unicode
+                if e.key == pygame.K_BACKSPACE:
+                    nombre = nombre[:-1]
+                elif len(nombre) < 15 and e.unicode.isprintable():
+                    nombre += e.unicode
 
         screen.fill(AZUL)
-        titulo=fbig.render("¡Bienvenido a Mascota Virtual!", True, BLANCO)
-        screen.blit(titulo, titulo.get_rect(center=(ANCHO//2,150)))
-        inst=font.render("Ingresa el nombre de tu perro:", True, BLANCO)
-        screen.blit(inst, inst.get_rect(center=(ANCHO//2,250)))
-
-        # Caja de texto
-        pygame.draw.rect(screen, BLANCO, (ANCHO//2-150,300,300,50))
-        pygame.draw.rect(screen, NEGRO, (ANCHO//2-150,300,300,50),2)
-        txt=font.render(nombre, True, NEGRO)
-        screen.blit(txt,(ANCHO//2-140,315))
-
-        # Cursor parpadeante
-        if pygame.time.get_ticks()%1000<500:
-            cx=ANCHO//2-140+txt.get_width()
-            pygame.draw.line(screen, NEGRO, (cx,310),(cx,340),2)
-
-        # Indicador para continuar
-        if nombre.strip():
-            cont=font.render("Presiona ENTER para continuar", True, BLANCO)
-            screen.blit(cont, cont.get_rect(center=(ANCHO//2,400)))
-
+        titulo = font.render("Ingresa el nombre de tu mascota:", True, BLANCO)
+        screen.blit(titulo, (200, 200))
+        pygame.draw.rect(screen, BLANCO, (200, 250, 400, 50))
+        pygame.draw.rect(screen, NEGRO, (200, 250, 400, 50), 2)
+        txt = font.render(nombre, True, NEGRO)
+        screen.blit(txt, (210, 260))
         pygame.display.flip()
         clock.tick(FPS)
 
-# ===== Main =====
+# =========================
+# 6) JUEGO PRINCIPAL
+# =========================
 def main():
-    """Bucle principal del juego."""
-    nombre=pantalla_nombre()
-
-    screen=pygame.display.set_mode((ANCHO, ALTO))
+    nombre = pantalla_nombre()
+    screen = pygame.display.set_mode((ANCHO, ALTO))
     pygame.display.set_caption(f"Mascota Virtual - {nombre}")
-    clock=pygame.time.Clock()
-    font=pygame.font.Font(None,24); ftitle=pygame.font.Font(None,32)
+    clock = pygame.time.Clock()
+    font  = pygame.font.Font(None, 24)
+    fbig  = pygame.font.Font(None, 32)
 
-    m=Mascota(nombre)
-    mensaje=""; t_msg=0
+    m = Mascota(nombre)
+    mensaje = ""
+    t_msg = 0
 
-    # Botones y acciones (x inicial de cada botón en pantalla)
-    acciones={"Jugar":(m.jugar,50), "Comer":(m.comer,200), "Dormir":(m.dormir,350)}
+    acciones = {
+        "Jugar":  (m.jugar,  50),
+        "Comer":  (m.comer, 200),
+        "Dormir": (m.dormir,350)
+    }
 
     while True:
-        # ---- Eventos ----
         for e in pygame.event.get():
-            if e.type==pygame.QUIT: 
+            if e.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-            if e.type==pygame.MOUSEBUTTONDOWN:
-                pos=e.pos
-                for txt,(fn,x0) in acciones.items():
-                    if pygame.Rect(x0,500,120,40).collidepoint(pos):
-                        mensaje=fn()
-                        t_msg=pygame.time.get_ticks()
+            if e.type == pygame.MOUSEBUTTONDOWN:
+                pos = e.pos
+                for txt, (fn, x0) in acciones.items():
+                    if pygame.Rect(x0, 500, 120, 40).collidepoint(pos):
+                        mensaje = fn()
+                        t_msg = pygame.time.get_ticks()
 
-        # ---- Lógica ----
         m.actualizar_animacion()
 
-        # ---- Dibujo UI ----
         screen.fill(CELESTE_CLARO)
+        screen.blit(fbig.render(f"Mascota: {m.nombre}", True, NEGRO), (20, 20))
 
-        # Título y barras de estado
-        screen.blit(ftitle.render(f"Mascota: {m.nombre}", True, NEGRO), (20,20))
-        screen.blit(font.render("Felicidad:", True, NEGRO), (20,70));  draw_bar(screen,120,70,200,20,m.felicidad,AMARILLO)
-        screen.blit(font.render("Energía:",   True, NEGRO), (20,100)); draw_bar(screen,120,100,200,20,m.energia,AZUL)
-        screen.blit(font.render("Hambre:",    True, NEGRO), (20,130)); draw_bar(screen,120,130,200,20,m.hambre,ROJO)
+        screen.blit(font.render("Felicidad:", True, NEGRO), (20, 70));  draw_bar(screen,120,70,200,20,m.felicidad,AMARILLO)
+        screen.blit(font.render("Energía:",   True, NEGRO), (20,100));  draw_bar(screen,120,100,200,20,m.energia,AZUL)
+        screen.blit(font.render("Hambre:",    True, NEGRO), (20,130));  draw_bar(screen,120,130,200,20,m.hambre,ROJO)
 
-        # Etiquetas de estado
-        estado="Estado: "+", ".join(m.get_estado_emocional())
-        screen.blit(font.render(estado, True, NEGRO), (20,160))
+        estado = "Estado: " + ", ".join(m.get_estado_emocional())
+        screen.blit(font.render(estado, True, NEGRO), (20, 160))
 
-        # Perro y FX
         dibujar_perro(screen, m)
-        dibujar_fx(screen, m, font)
 
-        # Botones
-        for txt,(fn,x0) in acciones.items():
+        for txt, (fn, x0) in acciones.items():
             draw_button(screen, x0, 500, 120, 40, txt, font)
 
-        # Mensaje temporal de acción
-        if mensaje and pygame.time.get_ticks()-t_msg<3000:
-            surf=font.render(mensaje, True, NEGRO)
-            rect=surf.get_rect(center=(ANCHO//2,400))
+        if mensaje and pygame.time.get_ticks() - t_msg < 3000:
+            surf = font.render(mensaje, True, NEGRO)
+            rect = surf.get_rect(center=(ANCHO//2, 450))
             pygame.draw.rect(screen, BLANCO, rect.inflate(20,10))
-            pygame.draw.rect(screen, NEGRO, rect.inflate(20,10), 2)
+            pygame.draw.rect(screen, NEGRO,  rect.inflate(20,10), 2)
             screen.blit(surf, rect)
 
         pygame.display.flip()
         clock.tick(FPS)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
