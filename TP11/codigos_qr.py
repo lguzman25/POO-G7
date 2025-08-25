@@ -63,7 +63,7 @@ def generar_qr_basico():
     )
     
     # Guardar imagen
-    img.save("/home/pirum/san_pablo/repos/Tareas/TP11/qr_basico.png")
+    img.save("TP11/qr_basico.png")
     print("✅ QR básico guardado como 'qr_basico.png'")
     
     return qr
@@ -94,7 +94,7 @@ def generar_qr_colores():
         # back_color="lightgray"   # Gris claro
     )
     
-    img.save("/home/pirum/san_pablo/repos/Tareas/TP11/qr_colores.png")
+    img.save("TP11/qr_colores.png")
     print("✅ QR con colores guardado como 'qr_colores.png'")
 
 def generar_qr_con_estilo():
@@ -137,7 +137,7 @@ def generar_qr_con_estilo():
         # back_color="#F0FFF0"     # Verde muy claro (descomenta para usar)
     )
     
-    img.save("/home/pirum/san_pablo/repos/Tareas/TP11/qr_estilizado.png")
+    img.save("/home/pirum/san_pablo/repos/TareasTP11/qr_estilizado.png")
     print("✅ QR estilizado guardado como 'qr_estilizado.png'")
 
 def generar_qr_con_logo():
